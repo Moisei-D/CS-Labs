@@ -8,7 +8,7 @@ Each lab lives under `labs/` and can be built or run independently:
 
 ```text
 labs/
-├── Lab01-Basics/
+├── Lab01/
 ├── Lab02/
 ├── Lab03/
 ├── Lab04/
