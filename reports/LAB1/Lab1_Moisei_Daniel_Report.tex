@@ -1,0 +1,355 @@
+\documentclass[12pt,a4paper]{article}
+
+% The report is designed for pdfLaTeX and Overleaf.
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{lmodern}
+\usepackage[left=2cm,right=1.5cm,top=2cm,bottom=2cm]{geometry}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{chngcntr}
+\usepackage[hidelinks]{hyperref}
+
+\graphicspath{{figures/}}
+\counterwithin{figure}{section}
+\onehalfspacing
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0pt}
+
+\definecolor{codebackground}{HTML}{F3F4F6}
+\definecolor{codeframe}{HTML}{D1D5DB}
+\definecolor{commentgreen}{HTML}{3F6212}
+\definecolor{keywordblue}{HTML}{1D4ED8}
+\definecolor{placeholderfill}{HTML}{FAFAFA}
+\definecolor{placeholderborder}{HTML}{CBD5E1}
+\definecolor{placeholdertext}{HTML}{64748B}
+
+\titleformat{\section}
+  {\normalfont\bfseries\centering\fontsize{13}{16}\selectfont}
+  {\thesection}{0.8em}{\MakeUppercase}
+\titleformat{name=\section,numberless}
+  {\normalfont\bfseries\centering\fontsize{13}{16}\selectfont}
+  {}{0pt}{\MakeUppercase}
+\titleformat{\subsection}
+  {\normalfont\bfseries\fontsize{12}{15}\selectfont}
+  {\thesubsection}{0.7em}{}
+\titlespacing*{\section}{0pt}{0pt}{12pt}
+\titlespacing*{\subsection}{0pt}{10pt}{6pt}
+
+\lstdefinestyle{csharp}{
+  language=[Sharp]C,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{keywordblue}\bfseries,
+  commentstyle=\color{commentgreen},
+  backgroundcolor=\color{codebackground},
+  frame=single,
+  rulecolor=\color{codeframe},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  numbers=left,
+  numberstyle=\tiny\color{placeholdertext},
+  xleftmargin=0.5cm,
+  framexleftmargin=0.4cm,
+  aboveskip=7pt,
+  belowskip=7pt,
+  literate=
+    {Ă}{{\u{A}}}1 {Â}{{\^{A}}}1 {Î}{{\^{I}}}1
+    {Ș}{{\c{S}}}1 {Ț}{{\c{T}}}1
+    {ă}{{\u{a}}}1 {â}{{\^{a}}}1 {î}{{\^{i}}}1
+    {ș}{{\c{s}}}1 {ț}{{\c{t}}}1
+}
+
+% If a screenshot is not present, the report remains compilable and displays
+% the exact filename that should be placed in the figures directory.
+\newcommand{\resultfigure}[3]{%
+  \begin{figure}[H]
+    \centering
+    \IfFileExists{figures/#1}{%
+      \includegraphics[width=0.94\textwidth,height=0.48\textheight,keepaspectratio]{figures/#1}%
+    }{%
+      \fcolorbox{placeholderborder}{placeholderfill}{%
+        \parbox[c][4.6cm][c]{0.9\textwidth}{%
+          \centering\color{placeholdertext}\itshape
+          Insert the terminal screenshot here.\par\medskip
+          Expected file: \texttt{figures/\detokenize{#1}}}}
+    }
+    \caption{#2}
+    \label{fig:#3}
+  \end{figure}
+}
+
+\begin{document}
+
+% -----------------------------------------------------------------------------
+% Title page
+% -----------------------------------------------------------------------------
+\begin{titlepage}
+  \begin{center}
+    \IfFileExists{figures/LOGO_UTM.jpg}{%
+      \includegraphics[width=3.4cm]{figures/LOGO_UTM.jpg}\par
+      \vspace{0.25cm}
+    }{}
+
+    {\bfseries\fontsize{14}{17}\selectfont
+      MINISTRY OF EDUCATION AND RESEARCH\par
+      OF THE REPUBLIC OF MOLDOVA\par
+      Technical University of Moldova\par
+      Faculty of Computers, Informatics and Microelectronics\par
+      Department of Software Engineering and Automation\par
+    }
+
+    \vspace{1.4cm}
+    {\bfseries\fontsize{16}{19}\selectfont Daniel Moisei, FAF-241\par}
+
+    \vspace{1.4cm}
+    {\bfseries\fontsize{36}{40}\selectfont Report\par}
+    \vspace{0.25cm}
+    {\itshape\fontsize{20}{24}\selectfont Laboratory Work No. 1\par}
+    {\bfseries\itshape\fontsize{20}{24}\selectfont
+      \href{https://else.fcim.utm.md/course/section.php?id=11371}{Cryptography and Security}\par}
+
+    \vspace{1cm}
+    {\fontsize{20}{25}\selectfont Topic: Caesar Cipher\par}
+    \vspace{0.2cm}
+    {\fontsize{15}{19}\selectfont Romanian Alphabet and Keyword-Based Permutation\par}
+  \end{center}
+
+  \vfill
+  \begin{flushright}
+    {\fontsize{15}{18}\selectfont Checked by:}\par
+    \textbf{Maia Zaica}, \textit{university assistant}
+  \end{flushright}
+
+  \vfill
+  \begin{center}
+    {\bfseries\fontsize{14}{17}\selectfont Chi\c{s}in\u{a}u -- 2026}
+  \end{center}
+\end{titlepage}
+
+\pagenumbering{arabic}
+\setcounter{page}{2}
+\tableofcontents
+\newpage
+
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+
+The purpose of this laboratory work is to understand and implement the Caesar cipher, evaluate the effect of its small key space, and extend it by permuting the alphabet with a keyword. Both versions operate on the 31-letter Romanian alphabet and use the explicit letter encoding required by the laboratory handout rather than Unicode code-point arithmetic.
+
+The application was implemented in C\# as an interactive console program. It supports encryption and decryption, normalizes Romanian letters, removes spaces from messages, validates all user input, and displays the active alphabet so that the result can be checked manually. The implementation also accepts the cedilla variants Ş and Ţ and converts them to the standard Romanian comma-below forms Ș and Ț.
+
+\newpage
+\section{Short Theory}
+
+\subsection{The Caesar Cipher}
+
+The Caesar cipher is a monoalphabetic substitution cipher. Each plaintext letter is replaced by the letter located a fixed number of positions later in the alphabet. If a letter is close to the end, the position wraps around to the beginning. Let $n$ be the alphabet length, $k$ the numeric key, $x$ the plaintext letter code, and $y$ the ciphertext letter code. Encryption and decryption are defined by
+
+\begin{equation}
+  y = e_k(x) = (x+k) \bmod n,
+  \qquad
+  x = d_k(y) = (y-k) \bmod n.
+\end{equation}
+
+For the Romanian alphabet, $n=31$ and $k\in\{1,\ldots,30\}$. Therefore, the ordinary cipher has only 30 possible keys. An attacker can try all of them quickly and identify the readable plaintext, so the cipher does not provide practical confidentiality.
+
+The encoding used in the program is
+
+\begin{center}
+\small
+\texttt{AĂÂBCDEFGHIÎJKLMNOPQRSȘTȚUVWXYZ},
+\end{center}
+
+where the position of a letter in the string is its numeric code, starting from zero.
+
+\subsection{Caesar Cipher with a Permuted Alphabet}
+
+The second version uses two keys. Key $k_1$ is the numeric shift from 1 to 30, while key $k_2$ is a keyword containing at least seven Romanian letters. The keyword is normalized to uppercase, repeated letters are retained only at their first occurrence, and the unused letters of the standard alphabet are appended. This produces the permuted alphabet.
+
+The same formulas are then applied, but $x$ and $y$ refer to positions in the permuted alphabet. In the idealized case there are $31!$ possible alphabet orders and 30 nonzero shifts, giving at most
+
+\begin{equation}
+  31!\times 30
+\end{equation}
+
+key pairs. Some different keyword/shift pairs may yield the same substitution. Although the enlarged key space makes exhaustive key search much harder, the method remains a monoalphabetic substitution: each plaintext letter always maps to the same ciphertext letter. Consequently, it is still vulnerable to frequency analysis and known-plaintext attacks.
+
+\newpage
+\section{Implementation}
+
+\subsection{Romanian Alphabet and Constraints}
+
+The required alphabet and validation limits are declared as constants. The alphabet string itself is the code table: \texttt{IndexOf} returns the numeric code of a letter without using its Unicode value.
+
+\begin{lstlisting}[style=csharp,caption={Alphabet encoding and key constraints}]
+private const string Alphabet =
+    "AĂÂBCDEFGHIÎJKLMNOPQRSȘTȚUVWXYZ";
+private const int MinimumShift = 1;
+private const int MaximumShift = 30;
+private const int MinimumKeywordLength = 7;
+\end{lstlisting}
+
+This representation guarantees that the implementation follows the exact order from the handout and makes the alphabet length available directly through \texttt{Alphabet.Length}.
+
+\subsection{Encryption and Decryption}
+
+Both operations are implemented by one transformation method. Encryption uses direction $+1$, while decryption uses $-1$. Adding the alphabet length before the modulo operation prevents a negative array index during decryption.
+
+\begin{lstlisting}[style=csharp,caption={Common transformation used for encryption and decryption}]
+private static string Transform(
+    string text, int shift, string activeAlphabet, bool encrypt)
+{
+    var result = new StringBuilder(text.Length);
+    int direction = encrypt ? 1 : -1;
+
+    foreach (char letter in text)
+    {
+        int index = activeAlphabet.IndexOf(letter);
+        int newIndex = (index + direction * shift
+                        + activeAlphabet.Length)
+                       % activeAlphabet.Length;
+        result.Append(activeAlphabet[newIndex]);
+    }
+
+    return result.ToString();
+}
+\end{lstlisting}
+
+Because validation is performed before this method is called, every character is guaranteed to have a valid index in the active alphabet.
+
+\subsection{Building the Permuted Alphabet}
+
+The keyword is concatenated with the standard Romanian alphabet. LINQ's \texttt{Distinct} preserves the first occurrence of every character, which removes repeated keyword letters and then appends every missing alphabet letter exactly once.
+
+\begin{lstlisting}[style=csharp,caption={Construction of the keyword-permuted alphabet}]
+private static string BuildPermutedAlphabet(string keyword)
+{
+    return new string(
+        (keyword + Alphabet).Distinct().ToArray());
+}
+\end{lstlisting}
+
+For example, the keyword \texttt{CRIPTOGRAFIE} produces
+
+\begin{center}
+\small\texttt{CRIPTOGAFEĂÂBDHÎJKLMNQSȘȚUVWXYZ}.
+\end{center}
+
+The program prints this value before transforming the message, as required by Task 1.2.
+
+\subsection{Normalization and Input Validation}
+
+Input is normalized to Unicode Form C and uppercase. Cedilla variants are converted to the Romanian comma-below forms so that input from different keyboards is accepted consistently.
+
+\begin{lstlisting}[style=csharp,caption={Normalization of Romanian letters}]
+private static string NormalizeRomanianLetters(string value)
+{
+    return value
+        .Normalize(NormalizationForm.FormC)
+        .ToUpperInvariant()
+        .Replace('Ş', 'Ș')
+        .Replace('Ţ', 'Ț');
+}
+\end{lstlisting}
+
+The numeric key reader repeats until parsing succeeds and the value lies in the inclusive range 1--30.
+
+\begin{lstlisting}[style=csharp,caption={Numeric-key validation}]
+if (int.TryParse(input, out int shift)
+    && shift is >= MinimumShift and <= MaximumShift)
+{
+    return shift;
+}
+
+Console.WriteLine(
+    "Invalid key. Enter an integer from 1 to 30 inclusive.");
+\end{lstlisting}
+
+Message validation allows only Romanian alphabet letters and spaces. It reports the rejected character, removes all spaces, and rejects an empty message. Keyword validation similarly reports unsupported characters and requires a minimum length of seven letters.
+
+\begin{lstlisting}[style=csharp,caption={Validation of message characters}]
+char invalidCharacter = text.FirstOrDefault(
+    character => character != ' '
+                 && !Alphabet.Contains(character));
+
+if (invalidCharacter != '\0')
+{
+    Console.WriteLine(
+        $"Invalid text character: '{invalidCharacter}'. " +
+        $"Use only spaces and Romanian alphabet letters: " +
+        Alphabet + ".");
+    continue;
+}
+\end{lstlisting}
+
+\newpage
+\section{Results}
+
+The following tests cover successful encryption and decryption for both tasks, followed by the invalid-input cases requested in the handout. The screenshot slots compile as placeholders until the corresponding PNG files are placed in the \texttt{figures} directory.
+
+\subsection{Task 1.1: Standard Romanian Alphabet}
+
+With plaintext \texttt{CIFRUL CEZAR} and $k=3$, the program removes the space and produces \texttt{FKITXOFHÂBT}. Decrypting that ciphertext with the same key recovers \texttt{CIFRULCEZAR}.
+
+\resultfigure{task1-encryption.png}
+  {Task 1.1 encryption with the standard Romanian alphabet}
+  {task1-encryption}
+
+\resultfigure{task1-decryption.png}
+  {Task 1.1 decryption recovering the normalized plaintext}
+  {task1-decryption}
+
+\subsection{Task 1.2: Keyword-Permuted Alphabet}
+
+Using keyword \texttt{CRIPTOGRAFIE}, numeric key $k_1=5$, and plaintext \texttt{CIFRUL CEZAR}, the displayed permuted alphabet is \texttt{CRIPTOGAFEĂÂBDHÎJKLMNQSȘȚUVWXYZ}. Encryption produces \texttt{OADGZȘOHTBG}; decryption with the same two keys returns \texttt{CIFRULCEZAR}.
+
+\resultfigure{task2-encryption.png}
+  {Task 1.2 encryption and the displayed keyword-permuted alphabet}
+  {task2-encryption}
+
+\resultfigure{task2-decryption.png}
+  {Task 1.2 decryption with the same numeric key and keyword}
+  {task2-decryption}
+
+\subsection{Invalid Input}
+
+An invalid numeric key causes the program to state that only integers from 1 to 30 are accepted and to ask again. An unsupported message character is displayed explicitly. For Task 1.2, a keyword shorter than seven letters is rejected, and a keyword containing a non-Romanian character is handled by the same validation loop.
+
+\resultfigure{invalid-key.png}
+  {Rejection of a numeric key outside the allowed range}
+  {invalid-key}
+
+\resultfigure{invalid-character.png}
+  {Rejection of an invalid message character}
+  {invalid-character}
+
+\resultfigure{invalid-keyword.png}
+  {Rejection of a keyword shorter than seven letters}
+  {invalid-keyword}
+
+\newpage
+\section{Conclusions}
+
+This laboratory work demonstrated that modular arithmetic can implement encryption and decryption over a custom alphabet without relying on character-code arithmetic. Using one ordered string as the encoding table made the program correspond directly to the required 31-letter Romanian alphabet. Normalization and validation were essential because Romanian letters can be entered in multiple Unicode forms and invalid data must never reach the transformation step.
+
+The ordinary Caesar cipher is insecure because it has only 30 possible nonzero shifts for the Romanian alphabet, so exhaustive search is immediate. A keyword-permuted alphabet greatly increases the apparent key space and prevents a simple 30-key search when the keyword is unknown. Nevertheless, it does not change the monoalphabetic nature of the cipher, and repeated letter-frequency patterns remain visible. The improved variant is therefore useful for learning about key spaces and substitutions, but it is not suitable for protecting real information.
+
+\section{Source Code}
+
+The complete C\# implementation is available in the course repository:
+
+\begin{center}
+  \url{https://github.com/Moisei-D/CS-Labs/tree/main/labs/Lab01}
+\end{center}
+
+The main implementation is located in \texttt{Caesar.cs}, while \texttt{Program.cs} contains the console entry point.
+
+\end{document}
