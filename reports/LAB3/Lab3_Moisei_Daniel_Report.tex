@@ -1,0 +1,490 @@
+\documentclass[12pt,a4paper]{article}
+
+% The report is designed for Tectonic's XeTeX engine and Overleaf.
+\usepackage{fontspec}
+\setmainfont{Liberation Serif}
+\setmonofont{Liberation Mono}[Scale=MatchLowercase]
+\usepackage[english]{babel}
+\usepackage[left=2cm,right=1.5cm,top=2cm,bottom=2cm]{geometry}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{fancyvrb}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+
+\graphicspath{{figures/}}
+\onehalfspacing
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0pt}
+\setlength{\emergencystretch}{2em}
+
+\definecolor{codebackground}{HTML}{F3F4F6}
+\definecolor{codeframe}{HTML}{D1D5DB}
+\definecolor{commentgreen}{HTML}{3F6212}
+\definecolor{keywordblue}{HTML}{1D4ED8}
+\definecolor{outputbackground}{HTML}{111827}
+\definecolor{outputtext}{HTML}{F9FAFB}
+
+\titleformat{\section}
+  {\normalfont\bfseries\centering\fontsize{13}{16}\selectfont}
+  {\thesection}{0.8em}{\MakeUppercase}
+\titleformat{name=\section,numberless}
+  {\normalfont\bfseries\centering\fontsize{13}{16}\selectfont}
+  {}{0pt}{\MakeUppercase}
+\titleformat{\subsection}
+  {\normalfont\bfseries\fontsize{12}{15}\selectfont}
+  {\thesubsection}{0.7em}{}
+\titlespacing*{\section}{0pt}{0pt}{12pt}
+\titlespacing*{\subsection}{0pt}{10pt}{6pt}
+
+\lstdefinestyle{csharp}{
+  language=[Sharp]C,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{keywordblue}\bfseries,
+  commentstyle=\color{commentgreen},
+  backgroundcolor=\color{codebackground},
+  frame=single,
+  rulecolor=\color{codeframe},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  escapeinside={(*@}{@*)},
+  xleftmargin=0.5cm,
+  framexleftmargin=0.4cm,
+  aboveskip=7pt,
+  belowskip=7pt
+}
+
+\DefineVerbatimEnvironment{terminaloutput}{Verbatim}{
+  fontsize=\footnotesize,
+  frame=single,
+  framesep=3mm,
+  rulecolor=\color{codeframe}
+}
+
+\begin{document}
+
+% -----------------------------------------------------------------------------
+% Title page
+% -----------------------------------------------------------------------------
+\begin{titlepage}
+  \begin{center}
+    \IfFileExists{figures/LOGO_UTM.jpg}{%
+      \includegraphics[width=3.4cm]{figures/LOGO_UTM.jpg}\par
+      \vspace{0.25cm}
+    }{}
+
+    {\bfseries\fontsize{14}{17}\selectfont
+      MINISTRY OF EDUCATION AND RESEARCH\par
+      OF THE REPUBLIC OF MOLDOVA\par
+      Technical University of Moldova\par
+      Faculty of Computers, Informatics and Microelectronics\par
+      Department of Software Engineering and Automation\par
+    }
+
+    \vspace{0.8cm}
+    {\bfseries\fontsize{16}{19}\selectfont Daniel Moisei, FAF-241\par}
+
+    \vspace{0.8cm}
+    {\bfseries\fontsize{36}{40}\selectfont Report\par}
+    \vspace{0.25cm}
+    {\itshape\fontsize{20}{24}\selectfont Laboratory Work No. 3\par}
+    {\bfseries\itshape\fontsize{20}{24}\selectfont
+      \href{https://else.fcim.utm.md/course/section.php?id=11371}{Cryptography and Security}\par}
+
+    \vspace{0.7cm}
+    {\fontsize{20}{25}\selectfont Topic: Playfair Cipher\par}
+    \vspace{0.2cm}
+    {\fontsize{15}{19}\selectfont Digraph Substitution for the Romanian Alphabet\par}
+  \end{center}
+
+  \vfill
+  \begin{flushright}
+    {\fontsize{15}{18}\selectfont Checked by:}\par
+    \textbf{Maia Zaica}, \textit{university assistant}
+  \end{flushright}
+
+  \vfill
+  \begin{center}
+    {\bfseries\fontsize{14}{17}\selectfont Chi\c{s}in\u{a}u -- 2026}
+  \end{center}
+\end{titlepage}
+
+\pagenumbering{arabic}
+\setcounter{page}{2}
+\tableofcontents
+\newpage
+
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+
+The purpose of this laboratory work is to study and implement the Playfair cipher, a classical digraph substitution method. According to the assignment rule, students with an odd number in the group register complete Task 3.1. Since the assigned register number is 17, this report presents the Playfair implementation rather than the Vigen\`ere task.
+
+The application was implemented in C\# as an interactive console program for the 31-letter Romanian alphabet. It supports both encryption and decryption, constructs a key-dependent matrix, prepares plaintext as letter pairs, validates the key and message, and continues running until the user explicitly selects the exit option. Invalid message or cryptogram input is requested again without discarding the already accepted key and matrix.
+
+\newpage
+\section{Short Theory}
+
+\subsection{Playfair Cipher}
+
+The Playfair cipher encrypts pairs of letters instead of processing every letter independently. This makes it a polygraphic substitution cipher: the result assigned to one letter depends on the other letter in the same pair. Compared with a simple monoalphabetic substitution, single-letter frequency information is less directly visible because the algorithm operates on digraphs.
+
+The cipher uses a matrix produced from a secret keyword. Repeated letters are removed from the keyword, the unused alphabet letters are appended, and the resulting sequence is written into the matrix row by row. The same matrix is required for both encryption and decryption.
+
+The Romanian alphabet used by the program is
+
+\begin{center}
+  \small\texttt{A\u{A}\^{A}BCDEFGHI\^{I}JKLMNOPQRS\c{S}T\c{T}UVWXYZ}.
+\end{center}
+
+It contains 31 letters. Since 31 is a prime number, these symbols cannot fill a nontrivial rectangular matrix exactly. The implementation therefore uses a $4\times8$ matrix and fills the remaining cell with \texttt{\#}. This follows the laboratory description, which permits unused matrix cells to contain an additional symbol. The extra symbol is accepted only when a cryptogram is entered for decryption.
+
+\subsection{Plaintext Preparation}
+
+Before encryption, spaces are removed and letters are converted to uppercase. The normalized plaintext is divided into pairs. If the two letters of a pair are equal, a filler letter is inserted between them. If one letter remains at the end, another filler is appended. The program normally uses \texttt{X}; when the original letter is already \texttt{X}, it uses \texttt{Q} to avoid creating the pair \texttt{XX}.
+
+For example,
+
+\begin{equation}
+  \texttt{BALLOON}\longrightarrow
+  \texttt{BA\;LX\;LO\;ON}.
+\end{equation}
+
+The inserted filler letters may be ambiguous in a naturally occurring message. Therefore, as required by the assignment, filler removal and the restoration of word spacing are performed manually after decryption.
+
+\subsection{Encryption Rules}
+
+Let the current pair be $(a,b)$. Encryption applies one of three rules:
+
+\begin{enumerate}
+  \item If $a$ and $b$ are on the same row, replace each with the symbol immediately to its right. The last column wraps to the first column.
+  \item If $a$ and $b$ are in the same column, replace each with the symbol immediately below it. The last row wraps to the first row.
+  \item Otherwise, the letters form opposite corners of a rectangle. Replace each with the symbol on its own row and the other letter's column.
+\end{enumerate}
+
+For decryption, the rectangle rule is unchanged. The same-row rule moves one position to the left, and the same-column rule moves one position upward.
+
+\section{Implementation}
+
+\subsection{Program Structure}
+
+The console entry point is intentionally small. It prints the laboratory title and delegates the complete workflow to the public \texttt{Playfair.Run()} method.
+
+\begin{lstlisting}[style=csharp,caption={Console entry point in Program.cs}]
+namespace Lab03
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine(
+                "Lab 03 - Playfair Cipher for the Romanian Alphabet"
+            );
+            Playfair.Run();
+        }
+    }
+}
+\end{lstlisting}
+
+The implementation constants define the Romanian alphabet and the dimensions of the matrix. A dictionary maps every symbol to its row and column so that pair transformation does not require scanning the complete matrix repeatedly.
+
+\begin{lstlisting}[style=csharp,caption={Alphabet, matrix, and position lookup}]
+private const string Alphabet =
+    "A(*@\u{A}\^{A}@*)BCDEFGHI(*@\^{I}@*)JKLMNOPQRS(*@\c{S}@*)T(*@\c{T}@*)UVWXYZ";
+private const char EmptyCell = '#';
+private const int Rows = 4;
+private const int Columns = 8;
+
+private static readonly char[,] Matrix =
+    new char[Rows, Columns];
+
+private static readonly Dictionary<
+    char, (int Row, int Column)> Positions = new();
+\end{lstlisting}
+
+\subsection{Interactive Execution}
+
+The \texttt{Run} method keeps displaying the operation menu until the user enters \texttt{X} or \texttt{EXIT}. Each selected operation obtains and validates a key, constructs the corresponding matrix, and then calls the encryption or decryption workflow.
+
+\begin{lstlisting}[style=csharp,caption={Continuous operation loop}]
+public static void Run()
+{
+    Console.OutputEncoding = Encoding.UTF8;
+    Console.InputEncoding = Encoding.UTF8;
+    Console.WriteLine($"Alfabet: {Alphabet}");
+
+    while (true)
+    {
+        Console.WriteLine();
+        string operation = ReadOperation();
+
+        if (operation is "X" or "EXIT")
+        {
+            Console.WriteLine("La revedere!");
+            return;
+        }
+
+        string key = ReadKey();
+        BuildMatrix(key);
+
+        Console.WriteLine("\nMatricea Playfair:");
+        PrintMatrix();
+
+        if (operation == "E")
+            EncryptMessage();
+        else
+            DecryptMessage();
+    }
+}
+\end{lstlisting}
+
+Input validation is performed at the field where the error occurs. Consequently, an invalid message or cryptogram does not force the user to select the operation or enter the key again. The existing matrix remains active until a valid value is supplied.
+
+\subsection{Matrix Construction}
+
+Matrix construction concatenates the key, alphabet, and extra-cell symbol. The duplicate-removal method retains only the first occurrence of each symbol. The resulting 32 characters are placed in a $4\times8$ array, while the dictionary records their coordinates.
+
+\begin{lstlisting}[style=csharp,caption={Construction of the keyed Playfair matrix}]
+private static void BuildMatrix(string key)
+{
+    string symbols = RemoveDuplicates(
+        key + Alphabet + EmptyCell
+    );
+    Positions.Clear();
+
+    for (int index = 0;
+         index < Rows * Columns;
+         index++)
+    {
+        int row = index / Columns;
+        int column = index % Columns;
+        char symbol = symbols[index];
+
+        Matrix[row, column] = symbol;
+        Positions[symbol] = (row, column);
+    }
+}
+\end{lstlisting}
+
+For the keyword \texttt{SECURITATE}, the generated matrix is
+
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{|*{8}{>{\centering\arraybackslash}m{0.65cm}|}}
+\hline
+S & E & C & U & R & I & T & A \\
+\hline
+\u{A} & \^{A} & B & D & F & G & H & \^{I} \\
+\hline
+J & K & L & M & N & O & P & Q \\
+\hline
+\c{S} & \c{T} & V & W & X & Y & Z & \# \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Preparing Letter Pairs}
+
+The plaintext-preparation loop consumes either one or two source letters. It consumes one letter when it inserts a filler between equal adjacent letters; otherwise, it consumes the complete pair. This prevents a repeated plaintext letter from being lost.
+
+\begin{lstlisting}[style=csharp,caption={Plaintext division into valid digraphs}]
+for (int index = 0; index < normalized.Length;)
+{
+    char first = normalized[index];
+    char second;
+
+    if (index + 1 >= normalized.Length)
+    {
+        second = ChooseFiller(first);
+        index++;
+    }
+    else if (first == normalized[index + 1])
+    {
+        second = ChooseFiller(first);
+        index++;
+    }
+    else
+    {
+        second = normalized[index + 1];
+        index += 2;
+    }
+
+    result.Append(first);
+    result.Append(second);
+}
+\end{lstlisting}
+
+\subsection{Pair Transformation}
+
+Encryption and decryption share the same transformation method. The direction is $+1$ for encryption and $-1$ for decryption. The helper \texttt{Mod} provides positive wraparound when moving backward from the first row or column.
+
+\begin{lstlisting}[style=csharp,caption={Same-row, same-column, and rectangle rules}]
+int direction = encrypt ? 1 : -1;
+
+if (firstRow == secondRow)
+{
+    result.Append(Matrix[
+        firstRow,
+        Mod(firstColumn + direction, Columns)]);
+    result.Append(Matrix[
+        secondRow,
+        Mod(secondColumn + direction, Columns)]);
+}
+else if (firstColumn == secondColumn)
+{
+    result.Append(Matrix[
+        Mod(firstRow + direction, Rows),
+        firstColumn]);
+    result.Append(Matrix[
+        Mod(secondRow + direction, Rows),
+        secondColumn]);
+}
+else
+{
+    result.Append(Matrix[firstRow, secondColumn]);
+    result.Append(Matrix[secondRow, firstColumn]);
+}
+\end{lstlisting}
+
+\newpage
+\section{Results}
+
+The project was compiled with the .NET SDK before testing. The build completed with zero warnings and zero errors. Functional checks covered encryption, decryption, Romanian diacritics, repeated plaintext letters, invalid characters, odd-length cryptograms, persistent validation, and explicit exit.
+
+\subsection{Encryption and Decryption with Romanian Letters}
+
+The keyword \texttt{SECURITATE} was used to verify all three transformation rules and Romanian diacritics. Spaces were removed automatically from the tested message, with the following result:
+
+\begin{center}
+  \texttt{M\^{A}INE \^{I}NV\u{A}\c{T}\u{A}M}
+  $\longrightarrow$
+  \texttt{KDROA\^{A}LX\^{A}\c{S}DJ}.
+\end{center}
+
+\begin{figure}[H]
+\centering
+\caption{Encryption test}
+\begin{minipage}{0.96\textwidth}
+\begin{terminaloutput}
+Alegeți operația: E
+Introduceți cheia (minimum 7 litere): SECURITATE
+
+Matricea Playfair:
+S E C U R I T A
+Ă Â B D F G H Î
+J K L M N O P Q
+Ș Ț V W X Y Z #
+
+Introduceți mesajul: MÂINE ÎNVĂȚĂM
+Mesaj pregătit: MÂINEÎNVĂȚĂM
+Criptograma: KDROAÂLXÂȘDJ
+\end{terminaloutput}
+\end{minipage}
+\end{figure}
+
+Entering the generated cryptogram with the same key recovered the normalized plaintext exactly.
+
+\begin{figure}[H]
+\centering
+\caption{Decryption test}
+\begin{minipage}{0.96\textwidth}
+\begin{terminaloutput}
+Alegeți operația: D
+Introduceți cheia (minimum 7 litere): SECURITATE
+Introduceți criptograma: KDROAÂLXÂȘDJ
+Mesaj decriptat: MÂINEÎNVĂȚĂM
+Eliminați manual literele de umplere și adăugați spațiile.
+\end{terminaloutput}
+\end{minipage}
+\end{figure}
+
+\subsection{Repeated-Letter Preparation}
+
+The message \texttt{BALLOON} contains two consecutive \texttt{L} letters. The application inserted \texttt{X} between them, producing the valid digraph sequence \texttt{BA LX LO ON}. The prepared message and ciphertext were
+
+\begin{figure}[H]
+\centering
+\caption{Insertion of a filler between repeated letters}
+\begin{minipage}{0.96\textwidth}
+\begin{terminaloutput}
+Introduceți mesajul: BALLOON
+Mesaj pregătit: BALXLOON
+Criptograma: ÎCNVMPPO
+\end{terminaloutput}
+\end{minipage}
+\end{figure}
+
+\subsection{Invalid Input and Key Preservation}
+
+An unsupported symbol and an odd-length cryptogram were entered before the valid cryptogram. In both cases, the program reported the exact problem and requested only the cryptogram again. The keyword and generated matrix were preserved.
+
+\begin{figure}[H]
+\centering
+\caption{Field-level validation without re-entering the key}
+\begin{minipage}{0.96\textwidth}
+\begin{terminaloutput}
+Introduceți criptograma: ABC!
+Eroare: Caracterul '!' nu este permis.
+Încercați din nou; cheia și matricea au fost păstrate.
+
+Introduceți criptograma: ABC
+Eroare: Criptograma trebuie să conțină un număr par
+de caractere.
+Încercați din nou; cheia și matricea au fost păstrate.
+
+Introduceți criptograma: KDROAÂLXÂȘDJ
+Mesaj decriptat: MÂINEÎNVĂȚĂM
+\end{terminaloutput}
+\end{minipage}
+\end{figure}
+
+\begin{table}[H]
+  \centering
+  \caption{Summary of verified behavior}
+  \renewcommand{\arraystretch}{1.25}
+  \begin{tabular}{>{\raggedright\arraybackslash}p{0.34\textwidth}>{\raggedright\arraybackslash}p{0.53\textwidth}}
+    \toprule
+    \textbf{Test} & \textbf{Observed result} \\
+    \midrule
+    Build & Successful; zero warnings and zero errors \\
+    Romanian-letter encryption & Produced the expected 12-character cryptogram \\
+    Decryption round trip & Recovered the normalized plaintext exactly \\
+    Repeated letters & Inserted \texttt{X} without losing either original letter \\
+    Invalid character & Reported the rejected symbol and requested the field again \\
+    Odd cryptogram length & Rejected before pair transformation \\
+    Persistent menu & Continued until the explicit exit command \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\newpage
+\section{Conclusions}
+
+This laboratory work demonstrated how the Playfair cipher extends substitution from individual letters to digraphs. The central implementation tasks were constructing a deterministic matrix from the key, preparing valid letter pairs, locating symbols efficiently, and applying inverse movement rules for decryption. A coordinate dictionary made the pair transformation direct and kept the three Playfair cases easy to distinguish in the source code.
+
+Adapting the method to Romanian required an explicit 31-letter alphabet. Because 31 symbols cannot fill a nontrivial rectangular matrix, a single additional matrix symbol was used in a $4\times8$ layout. The program validates ordinary messages against the Romanian alphabet while accepting that extra symbol only in a cryptogram that may legitimately contain it.
+
+The final application satisfies the functional requirements: the key contains at least seven letters, spaces are removed, letters are converted to uppercase, encryption and decryption are selectable, invalid input is explained, and word spacing is restored manually after decryption. The continuous menu and field-level retry loops improve usability without changing the cipher or contradicting the assignment.
+
+As a historical cipher, Playfair is not appropriate for modern data protection. It hides single-letter frequencies better than a monoalphabetic substitution but still preserves patterns in digraphs and is vulnerable to modern automated cryptanalysis. Its value is educational: it provides a clear introduction to block-oriented substitution and key-dependent transformations.
+
+\section{Source Code}
+
+The complete C\# implementation is available in the course repository:
+
+\begin{center}
+  \url{https://github.com/Moisei-D/CS-Labs/tree/main/labs/Lab03}
+\end{center}
+
+The main implementation is located in \texttt{Playfair.cs}. The public \texttt{Run()} method manages the user interaction, while private methods implement validation, matrix construction, plaintext preparation, encryption, and decryption. \texttt{Program.cs} contains only the console entry point.
+
+\end{document}
