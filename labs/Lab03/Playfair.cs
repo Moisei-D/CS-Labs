@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text;
 
 namespace Lab03;
@@ -187,7 +188,7 @@ public static class Playfair
 
     private static void BuildMatrix(string key)
     {
-        string symbols = RemoveDuplicates(key + Alphabet + EmptyCell);
+        string symbols = new string((key + Alphabet + EmptyCell).Distinct().ToArray());
         Positions.Clear();
 
         for (int index = 0; index < Rows * Columns; index++)
@@ -199,22 +200,6 @@ public static class Playfair
             Matrix[row, column] = symbol;
             Positions[symbol] = (row, column);
         }
-    }
-
-    private static string RemoveDuplicates(string text)
-    {
-        var seen = new HashSet<char>();
-        var result = new StringBuilder();
-
-        foreach (char character in text)
-        {
-            if (seen.Add(character))
-            {
-                result.Append(character);
-            }
-        }
-
-        return result.ToString();
     }
 
     private static string PreparePlaintext(string message)
