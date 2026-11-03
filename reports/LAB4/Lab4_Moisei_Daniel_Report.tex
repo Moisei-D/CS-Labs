@@ -1,0 +1,371 @@
+\documentclass[12pt,a4paper]{article}
+
+% The report is designed for Tectonic's XeTeX engine and Overleaf.
+\usepackage{fontspec}
+\setmainfont{Liberation Serif}
+\setmonofont{Liberation Mono}[Scale=MatchLowercase]
+\usepackage[english]{babel}
+\usepackage[left=2cm,right=1.5cm,top=2cm,bottom=2cm]{geometry}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{fancyvrb}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+
+\graphicspath{{figures/}}
+\onehalfspacing
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0pt}
+\setlength{\emergencystretch}{2em}
+
+\definecolor{codebackground}{HTML}{F3F4F6}
+\definecolor{codeframe}{HTML}{D1D5DB}
+\definecolor{commentgreen}{HTML}{3F6212}
+\definecolor{keywordblue}{HTML}{1D4ED8}
+\definecolor{outputbackground}{HTML}{111827}
+\definecolor{outputtext}{HTML}{F9FAFB}
+
+\titleformat{\section}
+  {\normalfont\bfseries\centering\fontsize{13}{16}\selectfont}
+  {\thesection}{0.8em}{\MakeUppercase}
+\titleformat{name=\section,numberless}
+  {\normalfont\bfseries\centering\fontsize{13}{16}\selectfont}
+  {}{0pt}{\MakeUppercase}
+\titleformat{\subsection}
+  {\normalfont\bfseries\fontsize{12}{15}\selectfont}
+  {\thesubsection}{0.7em}{}
+\titlespacing*{\section}{0pt}{0pt}{12pt}
+\titlespacing*{\subsection}{0pt}{10pt}{6pt}
+
+\lstdefinestyle{csharp}{
+  language=[Sharp]C,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{keywordblue}\bfseries,
+  commentstyle=\color{commentgreen},
+  backgroundcolor=\color{codebackground},
+  frame=single,
+  rulecolor=\color{codeframe},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  escapeinside={(*@}{@*)},
+  xleftmargin=0.5cm,
+  framexleftmargin=0.4cm,
+  aboveskip=7pt,
+  belowskip=7pt
+}
+
+\DefineVerbatimEnvironment{terminaloutput}{Verbatim}{
+  fontsize=\footnotesize,
+  frame=single,
+  framesep=3mm,
+  rulecolor=\color{codeframe}
+}
+
+\begin{document}
+
+\begin{titlepage}
+  \begin{center}
+    \IfFileExists{figures/LOGO_UTM.jpg}{%
+      \includegraphics[width=3.4cm]{figures/LOGO_UTM.jpg}\par
+      \vspace{0.25cm}
+    }{}
+
+    {\bfseries\fontsize{14}{17}\selectfont
+      MINISTRY OF EDUCATION AND RESEARCH\par
+      OF THE REPUBLIC OF MOLDOVA\par
+      Technical University of Moldova\par
+      Faculty of Computers, Informatics and Microelectronics\par
+      Department of Software Engineering and Automation\par
+    }
+
+    \vspace{0.8cm}
+    {\bfseries\fontsize{16}{19}\selectfont Daniel Moisei, FAF-241\par}
+
+    \vspace{0.8cm}
+    {\bfseries\fontsize{36}{40}\selectfont Report\par}
+    \vspace{0.25cm}
+    {\itshape\fontsize{20}{24}\selectfont Laboratory Work No. 4\par}
+    {\bfseries\itshape\fontsize{20}{24}\selectfont
+      \href{https://else.fcim.utm.md/course/section.php?id=11371}{Cryptography and Security}\par}
+
+    \vspace{0.7cm}
+    {\fontsize{20}{25}\selectfont Topic: Block Ciphers. The DES Algorithm\par}
+    \vspace{0.2cm}
+    {\fontsize{15}{19}\selectfont Task 2.6: Computing $B_1B_2\ldots B_8$ in Round $i$\par}
+  \end{center}
+
+  \vfill
+  \begin{flushright}
+    {\fontsize{15}{18}\selectfont Checked by:}\par
+    \textbf{Maia Zaica}, \textit{university assistant}
+  \end{flushright}
+
+  \vfill
+  \begin{center}
+    {\bfseries\fontsize{14}{17}\selectfont Chi\c{s}in\u{a}u -- 2026}
+  \end{center}
+\end{titlepage}
+
+\pagenumbering{arabic}
+\setcounter{page}{2}
+\tableofcontents
+\newpage
+
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+
+The purpose of this laboratory work is to study block ciphers and the Data Encryption Standard (DES), and to implement one element of the algorithm. The task is selected by the formula $\mathrm{task} = n \bmod 11$, where $n$ is the student's number in the group register. For $n = 17$ we obtain $17 \bmod 11 = 6$, so this report presents Task 2.6.
+
+Task 2.6 states: in round $i$ of DES the round key $K_i$ and the right half $R_{i-1}$ are known; the value $B_1B_2B_3B_4B_5B_6B_7B_8$ must be computed. These are the eight 6-bit blocks obtained from $K_i \oplus E(R_{i-1})$, which are the inputs of the eight S-boxes.
+
+The program was written in C\# as an interactive console application. It prints the expansion table, accepts the inputs from the user (binary or hexadecimal) or generates them randomly, and displays every intermediate step.
+
+\newpage
+\section{Short Theory}
+
+\subsection{Block Ciphers and DES}
+
+A block cipher processes the message in fixed-size blocks, transforming each block under a secret key. DES encrypts 64-bit blocks with a 56-bit effective key (64 bits including 8 parity bits). It is a Feistel cipher: the block is passed through an initial permutation $IP$, split into halves $L_0$ and $R_0$ of 32 bits, processed for 16 rounds, and finally passed through the inverse permutation $IP^{-1}$.
+
+\subsection{Structure of One Round}
+
+In round $i$ ($1\le i\le 16$) the halves are updated as
+
+\begin{equation}
+  L_i = R_{i-1}, \qquad R_i = L_{i-1} \oplus f(R_{i-1}, K_i).
+\end{equation}
+
+The round function $f$ consists of four steps:
+
+\begin{enumerate}
+  \item \textbf{Expansion.} The 32-bit $R_{i-1}$ is expanded to 48 bits with the table $E$. Some bits are used twice.
+  \item \textbf{Key mixing.} The result is XORed with the 48-bit round key: $K_i \oplus E(R_{i-1})$.
+  \item \textbf{Substitution.} The 48 bits are divided into eight blocks of six bits, $B_1,\ldots,B_8$. Each $B_j$ is replaced by a 4-bit value $S_j(B_j)$ taken from the S-box $S_j$.
+  \item \textbf{Permutation.} The 32-bit concatenation $S_1(B_1)\ldots S_8(B_8)$ is permuted with $P$.
+\end{enumerate}
+
+Task 2.6 covers steps 1 and 2 and the split into blocks $B_1\ldots B_8$, that is, everything in the round function that precedes the S-boxes.
+
+\subsection{The Expansion Table E}
+
+The table $E$ lists, for every output bit, the number of the input bit that is copied into it (bits are numbered from 1). Output bits 1--6 come from input bits 32, 1, 2, 3, 4, 5; the next six from 4, 5, 6, 7, 8, 9; and so on, ending with 28, 29, 30, 31, 32, 1. Each group of four input bits is thus surrounded by the neighbouring bits of the adjacent groups, which produces the avalanche effect in the following rounds.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{*{6}{>{\centering\arraybackslash}p{0.8cm}}}
+\toprule
+32 & 1 & 2 & 3 & 4 & 5 \\
+4 & 5 & 6 & 7 & 8 & 9 \\
+8 & 9 & 10 & 11 & 12 & 13 \\
+12 & 13 & 14 & 15 & 16 & 17 \\
+16 & 17 & 18 & 19 & 20 & 21 \\
+20 & 21 & 22 & 23 & 24 & 25 \\
+24 & 25 & 26 & 27 & 28 & 29 \\
+28 & 29 & 30 & 31 & 32 & 1 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Computing B}
+
+Let $A = E(R_{i-1})\oplus K_i$ be the 48-bit result. Then
+
+\begin{equation}
+  A = B_1B_2B_3B_4B_5B_6B_7B_8, \qquad |B_j| = 6\ \mathrm{bits}.
+\end{equation}
+
+Later, the first and last bit of $B_j$ select the row of $S_j$ and the middle four bits select the column; this lookup is the subject of Tasks 2.7 and 2.9 and is not part of Task 2.6.
+
+\section{Implementation}
+
+\subsection{Program Structure}
+
+The entry point prints the title and delegates the work to \texttt{DesRound.Run()}.
+
+\begin{lstlisting}[style=csharp,caption={Console entry point in Program.cs}]
+namespace Lab04
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("Lab 04 - DES, Task 2.6: "
+                + "computing B1...B8 in round i");
+            DesRound.Run();
+        }
+    }
+}
+\end{lstlisting}
+
+\subsection{Expansion Table}
+
+The table is stored as a flat array of 48 entries; output bit $j$ is read from input bit \texttt{E[j]}.
+
+\begin{lstlisting}[style=csharp,caption={Expansion table E}]
+private static readonly int[] E =
+{
+    32,  1,  2,  3,  4,  5,
+     4,  5,  6,  7,  8,  9,
+     8,  9, 10, 11, 12, 13,
+    12, 13, 14, 15, 16, 17,
+    16, 17, 18, 19, 20, 21,
+    20, 21, 22, 23, 24, 25,
+    24, 25, 26, 27, 28, 29,
+    28, 29, 30, 31, 32,  1
+};
+\end{lstlisting}
+
+\subsection{Input}
+
+The user chooses between typed input and random generation. For typed input the round number $i\in[1,16]$, $K_i$ (48 binary digits or 12 hexadecimal digits) and $R_{i-1}$ (32 binary or 8 hexadecimal digits) are requested. Each field is validated separately and is requested again on error. Random mode draws $i$, $K_i$ and $R_{i-1}$ from a cryptographically secure generator.
+
+\begin{lstlisting}[style=csharp,caption={Reading bits in binary or hexadecimal form}]
+if (text.Length == bits && text.All(c => c is '0' or '1'))
+    return text.Select(c => c - '0').ToArray();
+
+if (text.Length == bits / 4 && text.All(Uri.IsHexDigit))
+    return text.SelectMany(c =>
+        Convert.ToString(Convert.ToInt32(
+            c.ToString(), 16), 2).PadLeft(4, '0'))
+        .Select(c => c - '0').ToArray();
+\end{lstlisting}
+
+\subsection{Expansion, XOR and Splitting}
+
+The three steps of the task are performed in \texttt{Compute}. First $R_{i-1}$ is expanded, then XORed bitwise with $K_i$, and finally the 48-bit result is cut into eight groups of six bits.
+
+\begin{lstlisting}[style=csharp,caption={Core of the computation}]
+var expanded = new int[KeyBits];
+for (int j = 0; j < KeyBits; j++)
+    expanded[j] = r[E[j] - 1];
+
+var xor = new int[KeyBits];
+for (int j = 0; j < KeyBits; j++)
+    xor[j] = expanded[j] ^ k[j];
+
+for (int b = 0; b < BlockCount; b++)
+{
+    string bits = string.Concat(
+        Enumerable.Range(0, BlockBits)
+            .Select(c => xor[b * BlockBits + c]));
+    int value = Convert.ToInt32(bits, 2);
+    Console.WriteLine($"B{b + 1} = {bits} (decimal {value})");
+}
+\end{lstlisting}
+
+\newpage
+\section{Results}
+
+The project was built with the .NET SDK with zero errors. The program was verified against the standard worked DES example (Round 1 with $R_0=\texttt{F0AAF0AA}$ and $K_1=\texttt{1B02EFFC7072}$), whose published intermediate values are reproduced exactly.
+
+\subsection{Round 1 Example}
+
+\begin{figure}[H]
+\centering
+\caption{Task 2.6 for $i=1$, $K_1=\texttt{1B02EFFC7072}$, $R_0=\texttt{F0AAF0AA}$}
+\begin{minipage}{0.96\textwidth}
+\begin{terminaloutput}
+=== Inputs ===
+K1 = 000110 110000 001011 101111 111111 000111 000001 110010
+R0 = 1111 0000 1010 1010 1111 0000 1010 1010  (hex F0AAF0AA)
+
+=== Step 1: expansion E(R0) ===
+  bits  1- 6  <- R positions 32,1,2,3,4,5       = 011110
+  bits  7-12  <- R positions 4,5,6,7,8,9        = 100001
+  bits 13-18  <- R positions 8,9,10,11,12,13    = 010101
+  bits 19-24  <- R positions 12,13,14,15,16,17  = 010101
+  bits 25-30  <- R positions 16,17,18,19,20,21  = 011110
+  bits 31-36  <- R positions 20,21,22,23,24,25  = 100001
+  bits 37-42  <- R positions 24,25,26,27,28,29  = 010101
+  bits 43-48  <- R positions 28,29,30,31,32,1   = 010101
+E(R0) = 011110 100001 010101 010101 011110 100001 010101 010101
+
+=== Step 2: E(R0) XOR K1 ===
+E(R0) = 011110 100001 010101 010101 011110 100001 010101 010101
+K1    = 000110 110000 001011 101111 111111 000111 000001 110010
+XOR   = 011000 010001 011110 111010 100001 100110 010100 100111
+
+=== Step 3: split into eight 6-bit blocks ===
+B1 = 011000 (24)   B2 = 010001 (17)   B3 = 011110 (30)
+B4 = 111010 (58)   B5 = 100001 (33)   B6 = 100110 (38)
+B7 = 010100 (20)   B8 = 100111 (39)
+
+B1B2B3B4B5B6B7B8 =
+011000 010001 011110 111010 100001 100110 010100 100111
+\end{terminaloutput}
+\end{minipage}
+\end{figure}
+
+\subsection{Input Validation}
+
+Invalid values are rejected field by field. An out-of-range round number and key values of the wrong length were entered before the valid ones:
+
+\begin{figure}[H]
+\centering
+\caption{Field-level validation}
+\begin{minipage}{0.96\textwidth}
+\begin{terminaloutput}
+Enter round number i (1-16): 17
+Invalid round. Enter an integer from 1 to 16.
+Enter round number i (1-16): 20
+Invalid round. Enter an integer from 1 to 16.
+Enter round number i (1-16): 1
+Enter K1 (48 bits or 12 hex digits): 123
+Invalid input. Provide exactly 48 binary digits or 12 hex digits.
+Enter K1 (48 bits or 12 hex digits): zz
+Invalid input. Provide exactly 48 binary digits or 12 hex digits.
+Enter K1 (48 bits or 12 hex digits): 000110110000...110010
+Enter R0 (32 bits or 8 hex digits): F0AAF0AA
+\end{terminaloutput}
+\end{minipage}
+\end{figure}
+
+\begin{table}[H]
+  \centering
+  \caption{Summary of verified behavior}
+  \renewcommand{\arraystretch}{1.25}
+  \begin{tabular}{>{\raggedright\arraybackslash}p{0.34\textwidth}>{\raggedright\arraybackslash}p{0.53\textwidth}}
+    \toprule
+    \textbf{Test} & \textbf{Observed result} \\
+    \midrule
+    Build & Successful; zero errors \\
+    Expansion $E(R_0)$ & Matches the published DES example \\
+    $K_1\oplus E(R_0)$ and $B_1\ldots B_8$ & Match the published DES example \\
+    Binary and hex input & Both accepted for $K_i$ and $R_{i-1}$ \\
+    Invalid round or length & Rejected; only that field is requested again \\
+    Random mode & Generates $i$, $K_i$, $R_{i-1}$ and prints all steps \\
+    Persistent menu & Continues until the explicit exit command \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\newpage
+\section{Conclusions}
+
+This laboratory work introduced the DES block cipher and its Feistel structure, and implemented the part of the round function that precedes the S-boxes: the expansion $E$, the key mixing and the split into six-bit blocks. Task 2.6 was assigned by the rule $17 \bmod 11 = 6$.
+
+The implementation shows each step explicitly: which input bit feeds every output bit of the expansion, the two operands and the result of the XOR, and the eight blocks $B_1\ldots B_8$ in binary and decimal. The output was checked against the standard DES worked example and is identical. Accepting both binary and hexadecimal input, validating each field separately, and offering random generation makes the program convenient for checking hand calculations.
+
+The expansion is what makes DES diffuse: because boundary bits are used twice, a change in one bit of $R_{i-1}$ affects two adjacent S-boxes, and the effect spreads over the whole block within a few rounds. Today DES is obsolete because of its 56-bit key, which can be exhausted by brute force, and has been replaced by Triple DES and AES; its value is educational, as a clear example of a Feistel network with substitution and permutation layers.
+
+\section{Source Code}
+
+The complete C\# implementation is available in the course repository:
+
+\begin{center}
+  \url{https://github.com/Moisei-D/CS-Labs/tree/main/labs/Lab04}
+\end{center}
+
+The task is implemented in \texttt{DesRound.cs}; \texttt{Program.cs} contains only the console entry point.
+
+\end{document}
