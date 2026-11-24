@@ -1,0 +1,469 @@
+\documentclass[12pt,a4paper]{article}
+
+% The report is designed for Tectonic's XeTeX engine and Overleaf.
+\usepackage{fontspec}
+\setmainfont{Liberation Serif}
+\setmonofont{Liberation Mono}[Scale=MatchLowercase]
+\usepackage[english]{babel}
+\usepackage[left=2cm,right=1.5cm,top=2cm,bottom=2cm]{geometry}
+\usepackage{setspace}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{fancyvrb}
+\usepackage{fvextra}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+
+\graphicspath{{figures/}}
+\onehalfspacing
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0pt}
+\setlength{\emergencystretch}{2em}
+
+\definecolor{codebackground}{HTML}{F3F4F6}
+\definecolor{codeframe}{HTML}{D1D5DB}
+\definecolor{commentgreen}{HTML}{3F6212}
+\definecolor{keywordblue}{HTML}{1D4ED8}
+
+\titleformat{\section}
+  {\normalfont\bfseries\centering\fontsize{13}{16}\selectfont}
+  {\thesection}{0.8em}{\MakeUppercase}
+\titleformat{name=\section,numberless}
+  {\normalfont\bfseries\centering\fontsize{13}{16}\selectfont}
+  {}{0pt}{\MakeUppercase}
+\titleformat{\subsection}
+  {\normalfont\bfseries\fontsize{12}{15}\selectfont}
+  {\thesubsection}{0.7em}{}
+\titlespacing*{\section}{0pt}{0pt}{12pt}
+\titlespacing*{\subsection}{0pt}{10pt}{6pt}
+
+\lstdefinestyle{wolfram}{
+  language=Mathematica,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{keywordblue}\bfseries,
+  commentstyle=\color{commentgreen},
+  morecomment=[s]{(*}{*)},
+  morekeywords={RandomPrime,RandomInteger,PowerMod,IntegerLength,IntegerDigits,
+    IntegerString,FromDigits,ToCharacterCode,FromCharacterCode,StringJoin,GCD,
+    PrimeQ,Hash,ByteArray,SymmetricKey,Encrypt,Decrypt,Mod,While,If,Break},
+  backgroundcolor=\color{codebackground},
+  frame=single,
+  rulecolor=\color{codeframe},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  xleftmargin=0.5cm,
+  framexleftmargin=0.4cm,
+  aboveskip=7pt,
+  belowskip=7pt
+}
+
+% \screenshot{file name without .png}{caption}
+% Shows the screenshot if it is in figures/, otherwise a placeholder with the expected name.
+\newcommand{\screenshot}[2]{%
+  \begin{figure}[H]
+    \centering
+    \IfFileExists{figures/#1.png}{%
+      \includegraphics[width=0.92\textwidth,height=0.55\textheight,keepaspectratio]{#1.png}%
+    }{%
+      \fbox{\parbox[c][3cm][c]{0.85\textwidth}{\centering
+        \texttt{figures/\detokenize{#1}.png}\\[4pt]\textit{screenshot not added yet}}}%
+    }
+    \caption{#2}
+    \label{fig:#1}
+  \end{figure}%
+}
+
+\begin{document}
+
+\begin{titlepage}
+  \begin{center}
+    \IfFileExists{figures/LOGO_UTM.jpg}{%
+      \includegraphics[width=3.4cm]{figures/LOGO_UTM.jpg}\par
+      \vspace{0.25cm}
+    }{}
+
+    {\bfseries\fontsize{14}{17}\selectfont
+      MINISTRY OF EDUCATION AND RESEARCH\par
+      OF THE REPUBLIC OF MOLDOVA\par
+      Technical University of Moldova\par
+      Faculty of Computers, Informatics and Microelectronics\par
+      Department of Software Engineering and Automation\par
+    }
+
+    \vspace{0.8cm}
+    {\bfseries\fontsize{16}{19}\selectfont Daniel Moisei, FAF-241\par}
+
+    \vspace{0.8cm}
+    {\bfseries\fontsize{36}{40}\selectfont Report\par}
+    \vspace{0.25cm}
+    {\itshape\fontsize{20}{24}\selectfont Laboratory Work No. 5\par}
+    {\bfseries\itshape\fontsize{20}{24}\selectfont
+      \href{https://else.fcim.utm.md/course/section.php?id=11371}{Cryptography and Security}\par}
+
+    \vspace{0.7cm}
+    {\fontsize{20}{25}\selectfont Topic: Public-Key Cryptography\par}
+    \vspace{0.2cm}
+    {\fontsize{15}{19}\selectfont RSA, ElGamal and the Diffie--Hellman Key Exchange\par}
+  \end{center}
+
+  \vfill
+  \begin{flushright}
+    {\fontsize{15}{18}\selectfont Checked by:}\par
+    \textbf{Maia Zaica}, \textit{university assistant}
+  \end{flushright}
+
+  \vfill
+  \begin{center}
+    {\bfseries\fontsize{14}{17}\selectfont Chi\c{s}in\u{a}u -- 2026}
+  \end{center}
+\end{titlepage}
+
+\pagenumbering{arabic}
+\setcounter{page}{2}
+\tableofcontents
+\newpage
+
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+
+The purpose of this laboratory work is to study public-key (asymmetric) cryptography and to apply three of its classical algorithms to real-size numbers. The tasks are:
+
+\begin{itemize}
+  \item \textbf{Task 2.1} -- generate RSA keys with a modulus $n$ of at least 2048 bits, then encrypt and decrypt the message $m = $ \texttt{Moisei Daniel};
+  \item \textbf{Task 2.2} -- generate ElGamal keys for the 2048-bit prime $p$ and the generator $g = 2$ given in the assignment, then encrypt and decrypt the same message;
+  \item \textbf{Task 3} -- perform the Diffie--Hellman key exchange between Alisa and Bob over the same $p$ and $g$, with randomly chosen secrets $a$ and $b$, and obtain a 256-bit key for AES.
+\end{itemize}
+
+All computations were done in Wolfram Language (Wolfram Cloud notebook), which works with arbitrarily large integers exactly. Every step was checked inside the notebook: the bit sizes of the keys, the key equations, and that decryption returns the original message. The screenshots of the notebook are included in each section; the complete values (600-digit numbers) are listed in Appendix~A.
+
+\newpage
+\section{Short Theory}
+
+\subsection{Public-Key Cryptography}
+
+In symmetric cryptography both parties share one secret key, which has to be delivered over a secure channel. Public-key cryptography solves this problem with a pair of keys: a \emph{public key}, which can be published, and a \emph{private key}, which only the owner knows. Anyone can encrypt with the public key, but only the owner of the private key can decrypt.
+
+The security of these systems relies on \emph{one-way functions}: operations that are easy to compute but practically impossible to invert without extra information. Two such problems are used here:
+\begin{itemize}
+  \item \textbf{integer factorization} -- multiplying two large primes is easy, but recovering them from their product is infeasible (RSA);
+  \item \textbf{discrete logarithm} -- computing $g^x \bmod p$ is easy, but finding $x$ from $g^x \bmod p$ is infeasible for a large prime $p$ (ElGamal, Diffie--Hellman).
+\end{itemize}
+
+Both rely on fast modular exponentiation $a^b \bmod n$ (square-and-multiply), which in Wolfram Language is \texttt{PowerMod[a, b, n]}. With a negative exponent, \texttt{PowerMod[a, -1, n]} returns the modular inverse $a^{-1} \bmod n$, computed with the extended Euclidean algorithm.
+
+\subsection{RSA}
+
+\textbf{Key generation.} Choose two different large primes $p$ and $q$ and compute
+\begin{equation}
+  n = pq, \qquad \varphi(n) = (p-1)(q-1).
+\end{equation}
+Choose a public exponent $e$ with $1 < e < \varphi(n)$ and $\gcd(e, \varphi(n)) = 1$, and compute the private exponent
+\begin{equation}
+  d \equiv e^{-1} \pmod{\varphi(n)}, \qquad \text{i.e. } ed \equiv 1 \pmod{\varphi(n)}.
+\end{equation}
+The public key is $(n, e)$; the private key is $(n, d)$; $p$, $q$ and $\varphi(n)$ are kept secret.
+
+\textbf{Encryption and decryption.} For a message $0 \le m < n$:
+\begin{equation}
+  c = m^e \bmod n, \qquad m = c^d \bmod n.
+\end{equation}
+Decryption works because $ed = 1 + k\varphi(n)$, so by Euler's theorem $c^d = m^{ed} = m \cdot (m^{\varphi(n)})^k \equiv m \pmod n$.
+
+\subsection{ElGamal}
+
+ElGamal works in the multiplicative group modulo a large prime $p$ with a generator $g$.
+
+\textbf{Key generation.} Choose a random private key $x$ and compute the public key $y = g^x \bmod p$. The public key is $(p, g, y)$, the private key is $x$.
+
+\textbf{Encryption.} For a message $0 < m < p$ choose a fresh random ephemeral key $k$ and compute
+\begin{equation}
+  c_1 = g^k \bmod p, \qquad c_2 = m \cdot y^k \bmod p.
+\end{equation}
+The ciphertext is the pair $(c_1, c_2)$. The value $s = y^k = g^{xk}$ acts as a one-time mask on the message.
+
+\textbf{Decryption.} The receiver recomputes the mask with the private key and removes it:
+\begin{equation}
+  s = c_1^x \bmod p = g^{kx} \bmod p, \qquad m = c_2 \cdot s^{-1} \bmod p.
+\end{equation}
+The key $k$ must be new for every message: if it is reused, $c_2/c_2' = m/m'$ and one known message reveals the other.
+
+\subsection{Diffie--Hellman Key Exchange}
+
+The Diffie--Hellman protocol lets two parties agree on a common secret over a public channel. Both know $p$ and $g$.
+\begin{enumerate}
+  \item Alisa chooses a random secret $a$ and sends $A = g^a \bmod p$ to Bob.
+  \item Bob chooses a random secret $b$ and sends $B = g^b \bmod p$ to Alisa.
+  \item Alisa computes $K = B^a \bmod p$, Bob computes $K = A^b \bmod p$.
+\end{enumerate}
+Both obtain the same value, because $B^a = g^{ba} = g^{ab} = A^b \pmod p$. An eavesdropper sees only $p$, $g$, $A$ and $B$; to obtain $K$ it would have to solve a discrete logarithm. Plain Diffie--Hellman does not authenticate the parties, so in practice the public values are signed to prevent a man-in-the-middle attack.
+
+\subsection{From the Shared Secret to an AES-256 Key}
+
+The shared secret $K$ is a 2048-bit number, while AES-256 needs a key of exactly 256 bits. The secret is therefore passed through a key derivation step: $K$ is written as a fixed-length sequence of 256 bytes (big-endian, keeping leading zeros) and hashed with SHA-256, whose output is exactly 256 bits:
+\begin{equation}
+  k_{\mathrm{AES}} = \mathrm{SHA\text{-}256}\bigl(\mathrm{bytes}_{256}(K)\bigr).
+\end{equation}
+Since Alisa and Bob have the same $K$, they derive the same AES key.
+
+\subsection{Group Parameters from the Assignment}
+
+For Tasks 2.2 and 3 the assignment gives a 2048-bit prime $p$ (617 decimal digits, listed in Appendix~A) and $g = 2$. This is the standard \texttt{ffdhe2048} group from RFC~7919. The prime is a \emph{safe prime}: $q = (p-1)/2$ is also prime. Because $2^q \equiv 1 \pmod p$, the generator $g = 2$ produces the subgroup of prime order $q$, so the secret exponents ($x$, $k$, $a$, $b$) are chosen at random from $\{2, \ldots, q-1\}$.
+
+\newpage
+\section{Message Encoding}
+
+As required by the assignment, the message $m = $ \texttt{Moisei Daniel} (surname and name, separated by one space) is converted to a number in three steps: each character is replaced by its ASCII code, each code is written as two hexadecimal digits, and the resulting hexadecimal string is read as one integer and converted to decimal.
+
+\begin{table}[H]
+  \centering
+  \caption{ASCII encoding of the message}
+  \renewcommand{\arraystretch}{1.2}
+  \setlength{\tabcolsep}{4.2pt}
+  \begin{tabular}{l*{13}{c}}
+    \toprule
+    Character & M & o & i & s & e & i & \textit{sp} & D & a & n & i & e & l \\
+    ASCII     & 77 & 111 & 105 & 115 & 101 & 105 & 32 & 68 & 97 & 110 & 105 & 101 & 108 \\
+    Hex       & 4D & 6F & 69 & 73 & 65 & 69 & 20 & 44 & 61 & 6E & 69 & 65 & 6C \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{align}
+  H &= \texttt{4D6F697365692044616E69656C}_{16}, \\
+  m &= 6135048831842424644607035401580_{10}.
+\end{align}
+
+The number $m$ has 31 decimal digits (103 bits), so it is smaller than the RSA modulus and the ElGamal prime, as both algorithms require. After decryption the inverse conversion is applied: the integer is split into base-256 digits (bytes) and each byte is turned back into its character.
+
+\begin{lstlisting}[style=wolfram,caption={Message encoding (cell 1)}]
+plainText  = "Moisei Daniel";
+asciiCodes = ToCharacterCode[plainText, "ASCII"];                 (* character -> ASCII code *)
+hexBytes   = ToUpperCase[IntegerString[#, 16, 2]] & /@ asciiCodes; (* code -> two hex digits *)
+messageHex = StringJoin[hexBytes];                                 (* bytes in original order *)
+m          = FromDigits[messageHex, 16];                           (* hex string -> integer m *)
+decode[x_Integer] := FromCharacterCode[IntegerDigits[x, 256], "ASCII"];
+\end{lstlisting}
+
+\screenshot{fig01_message_encoding}{Message encoding: ASCII codes, hex bytes, the integer $m$ and the round-trip check}
+
+\newpage
+\section{Task 2.1. RSA}
+
+\subsection{Key Generation}
+
+\begin{enumerate}
+  \item The public exponent is fixed to $e = 65537 = 2^{16}+1$, the usual choice: it is prime and has only two bits set, so encryption is fast.
+  \item Two random primes $p$ and $q$ are taken from $[2^{1023}, 2^{1024}-1]$ with \texttt{RandomPrime}, so each has exactly 1024 bits and their product has 2047 or 2048 bits.
+  \item $n = pq$ and $\varphi(n) = (p-1)(q-1)$ are computed. The generation is repeated until $p \ne q$, $n$ has exactly 2048 bits and $\gcd(e, \varphi(n)) = 1$ (otherwise $e$ would have no inverse).
+  \item The private exponent is $d = e^{-1} \bmod \varphi(n)$, computed with \texttt{PowerMod[e, -1, phi]}.
+\end{enumerate}
+
+\begin{lstlisting}[style=wolfram,caption={RSA key generation (cell 2)}]
+rsaE = 65537;
+While[True,
+  rsaP   = RandomPrime[{2^1023, 2^1024 - 1}];
+  rsaQ   = RandomPrime[{2^1023, 2^1024 - 1}];
+  rsaN   = rsaP*rsaQ;                         (* n = p q *)
+  rsaPhi = (rsaP - 1)*(rsaQ - 1);             (* phi(n) *)
+  If[rsaP != rsaQ && IntegerLength[rsaN, 2] == 2048 && GCD[rsaE, rsaPhi] == 1, Break[]]
+];
+rsaD = PowerMod[rsaE, -1, rsaPhi];            (* d = e^-1 mod phi(n) *)
+\end{lstlisting}
+
+The output (Figure~\ref{fig:fig02_rsa_keygen}) shows the first and last digits of each number and its size: $p$ and $q$ have 1024 bits, $n$ has 2048 bits, $\gcd(e,\varphi(n)) = 1$ and $ed \bmod \varphi(n) = 1$, which confirms that $d$ is the correct inverse.
+
+\screenshot{fig02_rsa_keygen}{RSA key generation and the checks of the keys}
+
+\subsection{Encryption and Decryption}
+
+\begin{enumerate}
+  \item The condition $0 \le m < n$ is checked, since RSA works with residues modulo $n$.
+  \item Encryption with the public key: $c = m^e \bmod n$.
+  \item Decryption with the private key: $m' = c^d \bmod n$.
+  \item $m'$ is compared with $m$ and converted back to text.
+\end{enumerate}
+
+\begin{lstlisting}[style=wolfram,caption={RSA encryption and decryption (cell 3)}]
+rsaCipher    = PowerMod[m, rsaE, rsaN];          (* c  = m^e mod n *)
+rsaRecovered = PowerMod[rsaCipher, rsaD, rsaN];  (* m' = c^d mod n *)
+\end{lstlisting}
+
+\screenshot{fig03_rsa_encrypt_decrypt}{RSA encryption, decryption and recovery of the message}
+
+The ciphertext $c$ is a 2048-bit number that bears no visible relation to $m$. Decryption returned exactly $m = 6135048831842424644607035401580$, which decodes to \texttt{Moisei Daniel}.
+
+\newpage
+\section{Task 2.2. ElGamal}
+
+\subsection{Group Parameters}
+
+The prime $p$ from the assignment is entered in the notebook and $g = 2$, $q = (p-1)/2$ are defined. The checks confirm that $p$ has 2048 bits, that $p$ and $q$ are prime, and that $g^q \bmod p = 1$, i.e.\ $g$ generates the subgroup of order $q$.
+
+\begin{lstlisting}[style=wolfram,caption={Group parameters (cell 4, $p$ shortened)}]
+p = 3231700607131100730015351347782516...4281003994966956119696956248629032338072839127039;
+g = 2;
+q = (p - 1)/2;                                (* p = 2q + 1 is a safe prime *)
+\end{lstlisting}
+
+\screenshot{fig04_group_parameters}{The prime $p$ and generator $g$ from the assignment, with their checks}
+
+\subsection{Key Generation}
+
+The private key $x$ is a random integer from $\{2,\ldots,q-1\}$ and the public key is $y = g^x \bmod p$.
+
+\begin{lstlisting}[style=wolfram,caption={ElGamal key generation (cell 5)}]
+elgX = RandomInteger[{2, q - 1}];              (* private key x *)
+elgY = PowerMod[g, elgX, p];                   (* public key y = g^x mod p *)
+\end{lstlisting}
+
+\screenshot{fig05_elgamal_keygen}{ElGamal public key $(p, g, y)$ and private key $x$}
+
+\subsection{Encryption and Decryption}
+
+\begin{enumerate}
+  \item A fresh ephemeral key $k$ is chosen at random from $\{2,\ldots,q-1\}$.
+  \item The first part of the ciphertext is $c_1 = g^k \bmod p$; it lets the receiver rebuild the mask.
+  \item The mask is $s = y^k \bmod p$ and the second part of the ciphertext is $c_2 = m \cdot s \bmod p$.
+  \item The receiver computes the same mask from its private key: $s' = c_1^x \bmod p = g^{kx} \bmod p$.
+  \item The message is recovered with the modular inverse of the mask: $m' = c_2 \cdot s'^{-1} \bmod p$. The inverse exists because $p$ is prime and $s' \ne 0$.
+\end{enumerate}
+
+\begin{lstlisting}[style=wolfram,caption={ElGamal encryption and decryption (cell 6)}]
+elgK  = RandomInteger[{2, q - 1}];              (* ephemeral key k *)
+elgC1 = PowerMod[g, elgK, p];                   (* c1 = g^k mod p *)
+elgS  = PowerMod[elgY, elgK, p];                (* mask s = y^k mod p *)
+elgC2 = Mod[m*elgS, p];                         (* c2 = m s mod p *)
+
+elgS2        = PowerMod[elgC1, elgX, p];        (* s' = c1^x mod p *)
+elgRecovered = Mod[elgC2*PowerMod[elgS2, -1, p], p];  (* m' = c2 s'^-1 mod p *)
+\end{lstlisting}
+
+\screenshot{fig06_elgamal_encrypt_decrypt}{ElGamal ciphertext $(c_1, c_2)$, the mask check and the recovered message}
+
+The masks computed by the sender and by the receiver are equal, and the recovered integer equals $m$ and decodes to \texttt{Moisei Daniel}. Unlike RSA, the ElGamal ciphertext is twice as long as the modulus and is different each time, even for the same message, because $k$ is random.
+
+\newpage
+\section{Task 3. Diffie--Hellman Key Exchange}
+
+\subsection{Exchange between Alisa and Bob}
+
+Alisa and Bob use the public parameters $p$ and $g = 2$ from the assignment.
+
+\begin{enumerate}
+  \item Alisa chooses a random secret $a \in \{2,\ldots,q-1\}$ and Bob chooses $b \in \{2,\ldots,q-1\}$ independently.
+  \item They compute and exchange the public values $A = g^a \bmod p$ and $B = g^b \bmod p$.
+  \item Alisa computes $K = B^a \bmod p$ and Bob computes $K = A^b \bmod p$.
+  \item The two results are compared: they must be equal to $g^{ab} \bmod p$.
+\end{enumerate}
+
+\begin{lstlisting}[style=wolfram,caption={Diffie--Hellman exchange (cell 7)}]
+aliceSecret = RandomInteger[{2, q - 1}];            (* a *)
+bobSecret   = RandomInteger[{2, q - 1}];            (* b *)
+alicePublic = PowerMod[g, aliceSecret, p];          (* A = g^a mod p, sent to Bob *)
+bobPublic   = PowerMod[g, bobSecret, p];            (* B = g^b mod p, sent to Alisa *)
+
+aliceShared = PowerMod[bobPublic, aliceSecret, p];  (* Alisa: K = B^a mod p *)
+bobShared   = PowerMod[alicePublic, bobSecret, p];  (* Bob:   K = A^b mod p *)
+\end{lstlisting}
+
+\screenshot{fig07_dh_exchange}{Secrets, public values and the shared secret computed by Alisa and by Bob}
+
+\subsection{Deriving the AES-256 Key}
+
+Each party writes its shared secret as 256 bytes (\texttt{IntegerDigits[K, 256, 256]}, which keeps leading zero bytes) and hashes it with SHA-256. The 32-byte digest is the AES-256 key.
+
+\begin{lstlisting}[style=wolfram,caption={AES key derivation (cell 8)}]
+toBytes[x_Integer] := ByteArray[IntegerDigits[x, 256, 256]];   (* 256-byte big-endian *)
+aliceKey  = Hash[toBytes[aliceShared], "SHA256", "ByteArray"]; (* 32 bytes = 256 bits *)
+bobKey    = Hash[toBytes[bobShared],   "SHA256", "ByteArray"];
+aesKeyHex = Hash[toBytes[aliceShared], "SHA256", "HexString"];
+\end{lstlisting}
+
+\screenshot{fig08_dh_aes_key}{The 256-bit AES key derived by Alisa and Bob}
+
+Both parties obtained the same 64-hex-digit (256-bit) key:
+\begin{center}
+  \texttt{2f8b1b3890e49f6c55b1f322fb1887a5aa461fd6beba991dd47db6f75317d740}
+\end{center}
+
+\subsection{Using the Key with AES}
+
+To show that the agreed key is usable, Alisa encrypts the message with AES-256 under her key and Bob decrypts it with the key he derived on his side.
+
+\begin{lstlisting}[style=wolfram,caption={AES-256 encryption with the agreed key (cell 9)}]
+aliceAES  = SymmetricKey[<|"Cipher" -> "AES256", "Key" -> aliceKey|>];
+bobAES    = SymmetricKey[<|"Cipher" -> "AES256", "Key" -> bobKey|>];
+aesCipher = Encrypt[aliceAES, plainText];
+Decrypt[bobAES, aesCipher]
+\end{lstlisting}
+
+\screenshot{fig09_aes_demo}{AES-256 encryption by Alisa and decryption by Bob with the agreed key}
+
+\newpage
+\section{Results}
+
+\begin{table}[H]
+  \centering
+  \caption{Summary of the checks performed in the notebook}
+  \renewcommand{\arraystretch}{1.25}
+  \begin{tabular}{>{\raggedright\arraybackslash}p{0.17\textwidth}>{\raggedright\arraybackslash}p{0.47\textwidth}>{\raggedright\arraybackslash}p{0.25\textwidth}}
+    \toprule
+    \textbf{Task} & \textbf{Check} & \textbf{Result} \\
+    \midrule
+    Encoding & \texttt{decode[m] == "Moisei Daniel"} & True \\
+    2.1 RSA & bit length of $n$ & 2048 \\
+            & $\gcd(e, \varphi(n))$, \ $ed \bmod \varphi(n)$ & 1, \ 1 \\
+            & $c^d \bmod n = m$ & True, text recovered \\
+    Parameters & bits of $p$; $p$, $q$ prime; $g^q \bmod p$ & 2048; True, True; 1 \\
+    2.2 ElGamal & sender mask $=$ receiver mask & True \\
+                & $c_2 s^{-1} \bmod p = m$ & True, text recovered \\
+    3 DH & $B^a \bmod p = A^b \bmod p$ & True \\
+         & SHA-256 keys of Alisa and Bob equal & True, 256 bits \\
+         & AES-256 decryption by Bob & \texttt{Moisei Daniel} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Conclusions}
+
+This laboratory work applied three public-key algorithms to numbers of real cryptographic size. The message \texttt{Moisei Daniel} was converted through its ASCII and hexadecimal representation into the integer $m = 6135048831842424644607035401580$, which was then encrypted and decrypted with RSA and with ElGamal.
+
+For RSA a 2048-bit modulus was built from two random 1024-bit primes, and the private exponent was obtained as the modular inverse of $e = 65537$. The checks $\gcd(e,\varphi(n)) = 1$ and $ed \equiv 1 \pmod{\varphi(n)}$ confirmed the keys, and decryption returned the original message. The security of RSA rests on the fact that $d$ can only be computed from $\varphi(n)$, which requires the factorization of $n$.
+
+For ElGamal and Diffie--Hellman the 2048-bit safe prime from the assignment was used; the notebook confirmed that $p$ and $(p-1)/2$ are prime and that $g = 2$ generates the subgroup of order $q$. ElGamal hides the message with a random mask $g^{xk}$ that only the owner of $x$ can rebuild, so the same message gives a different ciphertext each time. In the Diffie--Hellman exchange Alisa and Bob published only $A$ and $B$, yet both computed the same 2048-bit secret, from which SHA-256 produced the same 256-bit AES key; an AES-256 encryption by Alisa was correctly decrypted by Bob.
+
+In practice public-key algorithms are much slower than symmetric ones, so they are combined: RSA or Diffie--Hellman is used to establish a key, and the data itself is encrypted with a symmetric cipher such as AES -- exactly the scheme demonstrated in Task 3.
+
+\section{Source Code}
+
+The complete Wolfram Language code, with one commented block per notebook cell, is available in the course repository:
+
+\begin{center}
+  \url{https://github.com/Moisei-D/CS-Labs/tree/main/labs/Lab05}
+\end{center}
+
+\newpage
+\appendix
+\renewcommand{\thesection}{\Alph{section}}
+\section{Complete Numerical Values}
+
+The values below were exported from the notebook. Long integers are wrapped over several lines.
+
+\IfFileExists{wolfram_output.txt}{%
+  \VerbatimInput[fontsize=\scriptsize,breaklines=true,breakanywhere=true,frame=single,rulecolor=\color{codeframe}]{wolfram_output.txt}%
+}{%
+  \begin{center}\fbox{\parbox{0.85\textwidth}{\centering
+    \texttt{wolfram\_output.txt}\\[4pt]\textit{paste the output of cell 10 into this file}}}\end{center}%
+}
+
+\end{document}
